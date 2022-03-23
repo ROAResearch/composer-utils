@@ -1,0 +1,40 @@
+{
+    "name": "roaresearch/composer-utils",
+    "description": "Classes that helps using composer on libraries and projects",
+    "keywords": [
+        "composer"
+    ],
+    "type": "library",
+    "license": "BSD-3-Clause",
+    "homepage": "https://github.com/ROAResearch/composer-utils",
+    "authors": [
+        {
+            "name": "Angel (Faryshta) Guevara",
+            "email": "aguevara@tecnocen.com",
+            "homepage": "https://github.com/Faryshta",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": "~8.1"
+    },
+    "scripts": {
+        "configDB": "roaresearch\\composer\\utils\\DBListener::config",
+        "blankDB": "roaresearch\\composer\\utils\\DBListener::blankConfig"
+    },
+    "require-dev": {
+    },
+    "extra": {
+        "utilConfig": {
+            "dbname": "composer_utils_test",
+            "dbtpls": {
+                "tests.php": "roaresearch\\composer\\utils\\SimpleDBTPL"
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "roaresearch\\composer\\utils\\": "src"
+        }
+    }
+}
