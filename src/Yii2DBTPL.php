@@ -2,7 +2,7 @@
 
 namespace roaresearch\composer\utils;
 
-class SimpleDBTPL implements DBTPL
+class Yii2DBTPL implements DBTPL
 {
     public function __construct(
         public readonly string $user,
@@ -16,10 +16,11 @@ class SimpleDBTPL implements DBTPL
     {
         return <<<PHP
             <?php
-            \$dbuser = '{$this->user}';
-            \$dbpass = '{$this->pass}';
-            \$dbdsn = '{$this->dsn}';
-            \$dbname = '{$this->name}';
+            return [
+                'dsn' => '{$this->dsn};dbname={$this->name}',
+                'username' => '{$this->user}',
+                'password' => '{$this->pass}',
+            ];
             PHP;
     }
 }

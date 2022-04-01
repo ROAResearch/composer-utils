@@ -28,7 +28,7 @@
         "utilConfig": {
             "dbname": "composer_utils_test",
             "dbtpls": {
-                "tests.php": "roaresearch\\composer\\utils\\SimpleDBTPL"
+                "tests.php": "roaresearch\\composer\\utils\\VarDBTPL"
             }
         }
     },
