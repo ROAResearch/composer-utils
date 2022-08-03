@@ -12,7 +12,7 @@ class EventContainer
     public function __construct(protected readonly Event $event) {
         $parsed = [];
         foreach ($event->getArguments() as $arg) {
-            $parse = explode('=', $arg);
+            $parse = explode('=', $arg, 2);
             $parsed[$parse[0]] = $parse[1] ?? true;
         }
 
@@ -25,11 +25,17 @@ class EventContainer
     {
         return $this->parsedArguments[$arg]
             ?? $this->packageConfig[$arg]
+            ?? $this->getEnv($arg)
             ?? $default;
     }
 
     public function getArgs(string $arg, ?string $default = null): ?array
     {
         return $this->packageConfig[$arg] ?? $default;
+    }
+    
+    public function getEnv(string $arg) ?string
+    {
+        return (false === $val = getenv($arg))? null : $val;
     }
 }
