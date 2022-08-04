@@ -34,7 +34,7 @@ class EventContainer
         return $this->packageConfig[$arg] ?? $default;
     }
     
-    public function getEnv(string $arg) ?string
+    public function getEnv(string $arg): ?string
     {
         return (false === $val = getenv($arg))? null : $val;
     }
