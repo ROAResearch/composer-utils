@@ -9,13 +9,7 @@ Installation
 The preferred way to install this extension is through
 [composer](http://getcomposer.org/download/).
 
-Either run
-
-```
-php composer.phar require --prefer-dist roaresearch/yii2-oauth2-server "*"
-```
-
-or add
+add
 
 ```json
 "roaresearch/composer-utils": "~1.0.0"
