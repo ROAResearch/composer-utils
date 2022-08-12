@@ -6,6 +6,10 @@ use Composer\Script\Event;
 
 class EventContainer
 {
+    protected const DEV_ENVIRONMENT = 'dev';
+    protected const PROD_ENVIRONMENT = 'prod';
+    protected const ENVIRONMENT_ARG = 'environment';
+
     protected readonly array $parsedArguments;
     protected readonly array $packageConfig;
 
@@ -37,5 +41,10 @@ class EventContainer
     public function getEnv(string $arg): ?string
     {
         return (false === $val = getenv($arg))? null : $val;
+    }
+
+    public function getIsProd(): bool
+    {
+        return $this->getEnv(static::ENVIRONMENT_ARG) == static::PROD_ENVIRONMENT;
     }
 }

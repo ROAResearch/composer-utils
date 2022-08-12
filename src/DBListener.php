@@ -13,110 +13,153 @@ class DBListener
     protected const DSN_ARG = 'dbdsn';
     protected const NAME_ARG = 'dbname';
     protected const TPLS_ARG = 'dbtpls';
+    protected const TEST_SUFFIX_ARG = 'dbtestsuffix';
+    protected const TEST_TPLS_ARG = 'dbtesttpls';
 
-    protected const DEFAULT_USER = 'root';
-    protected const DEFAULT_PASS = 'root';
     protected const DEFAULT_DSN = 'mysql:host=127.0.0.1';
 
-    protected const INCORRECT_USER_PASS_MSG = 'DB config incorrect.';
-    protected const NOT_ALLOWED_DB_NAME_MSG = 'Not allowed to access database ';
-    protected const FILE_GENERATION_SUCCESS = 'Config file generated successfully';
-    protected const FILE_GENERATION_FAILURE = 'Failed at generating config file';
+    protected const USER_PROMPT = 'Database Username';
+    protected const PASS_PROMPT = 'Database Password';
+    protected const DSN_PROMPT = 'Database DSN';
+    protected const NAME_PROMPT = 'Database Name';
+
+    protected const INCORRECT_USER_PASS_MSG = 'DB credentials incorrect';
+    protected const NOT_ALLOWED_DB_NAME_MSG = 'Not allowed to access DB ';
+    protected const FILE_RENDER_SUCCESS_MSG = 'Rendered successfully.';
+    protected const FILE_RENDER_FAILURE_MSG = 'Rendering failed.';
+
+    protected static EventContainer $container;
+    protected static PDO $pdo;
+    protected static string $user;
+    protected static string $pass;
+    protected static string $dsn;
+    protected static string $name;
+    protected static string $suffix;
 
     /**
-     * It is used to write the user credentials in a PHP file.
-     * @see self::dbFile()
+     * Check if the database credentials are valid and write them into files.
      * @param Event $event
      */
     public static function config(Event $event)
     {
-        $container = new EventContainer($event);
+        static::fetchArgs($event);
 
-        $user = $container->getArg(static::USER_ARG, static::DEFAULT_USER);
-        $pass = $container->getArg(static::PASS_ARG, static::DEFAULT_PASS);
-        $dsn = $container->getArg(static::DSN_ARG, static::DEFAULT_DSN);
-
-        while (null === ($pdo = static::tryPDO($user, $pass, $dsn))) {
-            ConsoleHelper::output(static::INCORRECT_USER_PASS_MSG);
-            [$user, $pass, $dsn] = static::requestCredentials($dsn);
+        while (!static::buildPDO()) {
+            ConsoleHelper::error(static::INCORRECT_USER_PASS_MSG);
+            static::promptCredentials();
         }
 
-        $name = $container->getArg(static::NAME_ARG) ?? static::requestName();
-        while (!self::useDB($pdo, $name)) {
-            ConsoleHelper::stdout(static::NOT_ALLOWED_DB_NAME_MSG . " `$name`");
-            $name = self::requestName();
+        while (!static::useDB()) {
+            ConsoleHelper::error(static::NOT_ALLOWED_DB_NAME_MSG . static::$name);
+            static::$name = self::requestName();
         }
 
-
-        foreach ($container->getArgs(static::TPLS_ARG) as $location => $tpl) {
-            ConsoleHelper::stdout(
-                ComposerHelper::renderFile(
-                    $location,
-                    new $tpl($user, $pass, $dsn, $name)
-                )
-                ? ("`$location` ". static::FILE_GENERATION_SUCCESS)
-                : ("`$location` ". static::FILE_GENERATION_FAILURE)
-            );
+        static::renderTPLs(static::TPLS_ARG);
+        if (static::$suffix) {
+            static::$name .= static::$suffix;
+            static::renderTPLs(static::TEST_TPLS_ARG);
         }
     }
 
+    /**
+     * @param Event $event
+     */
     public static function blankConfig(Event $event)
     {
-        $container = new EventContainer($event);
-        $user = $container->getArg(static::USER_ARG, static::DEFAULT_USER);
-        $pass = $container->getArg(static::PASS_ARG, static::DEFAULT_PASS);
-        $dsn = $container->getArg(static::DSN_ARG, static::DEFAULT_DSN);
-        $name = $container->getArg(static::NAME_ARG) ?? static::requestName();
+        static::fetchArgs($event);
 
-        foreach ($container->getArgs(static::TPLS_ARG) as $location => $tpl) {
-            ConsoleHelper::stdout(
-                ComposerHelper::renderFile(
-                    $location,
-                    new $tpl($user, $pass, $dsn, $name)
-                )
-                ? ("`$location` ". static::FILE_GENERATION_SUCCESS)
-                : ("`$location` ". static::FILE_GENERATION_FAILURE)
-            );
+        static::renderTPLs(static::TPLS_ARG);
+        if (static::$suffix) {
+            static::$name .= static::$suffix;
+            static::renderTPLs(static::TEST_TPLS_ARG);
         }
-        
+
+    }
+
+    /**
+     * Fetch the default arguments.
+     *
+     * @param Event $event
+     */
+    protected static function fetchArgs(Event $event)
+    {
+        static::$container = new EventContainer($event);
+
+        static::$user = static::$container->getArg(static::USER_ARG)
+            ?? static::promptUser();
+        static::$pass = static::$container->getArg(static::PASS_ARG)
+            ?? static::promptPass();
+        static::$dsn = static::$container->getArg(
+            static::DSN_ARG,
+            static::DEFAULT_DSN
+        );
+
+        static::$name = static::$container->getArg(static::NAME_ARG)
+            ?? static::prompttName();
+        static::$suffix = static::$container->getIsProd()
+            ? ''
+            : static::$container->getArg(static::TEST_SUFFIX_ARG, '');
+    }
+
+    /**
+     * @return string console input
+     */
+    protected static function promptUser(): string
+    {
+        return ConsoleHelper::input(static::USER_PROMPT);
+    }
+
+    /**
+     * @return string console input
+     */
+    protected static function promptPass(): string
+    {
+        return ConsoleHelper::input(static::PASS_PROMPT);
+    }
+
+    /**
+     * @return string console input
+     */
+    protected static function promptDsn(): string
+    {
+        return ConsoleHelper::input(static::DSN_PROMPT, static::$dsn);
+    }
+
+    /**
+     * @return string console input
+     */
+    protected static function promptName(): string
+    {
+        return ConsoleHelper::input(static::NAME_PROMPT);
     }
 
     /**
      * @param string $dsn
      * @return string[] DB user credentials.
      */
-    protected static function requestCredentials(string $dsn)
+    protected static function requestCredentials()
     {
-        $user = ConsoleHelper::input('Database username');
-        $pass = ConsoleHelper::input('Database password');
-        $dsn = ConsoleHelper::input('Database password', $dsn);
-
-        return [$user, $pass, $dsn];
+        static::$user = static::promptUser();
+        static::$pass = static::promptPass();
+        static::$dsn = static::promptDsn();
     }
 
     /**
-     * @return string Database name.
+     * @return bool whether the PDO connection was created.
      */
-    protected static function requestName()
-    {
-        return ConsoleHelper::input('Database name');
-    }
-
-    /**
-     * @param string $user DB user.
-     * @param string $pass DB password.
-     * @param string $dsn PDO DSN
-     * @return ?PDO The connection or `null` on failure.
-     */
-    protected static function tryPDO(string $user, string $pass, string $dsn): ?PDO
+    protected static function buildPDO(): bool
     {
         try {
-            $pdo = new PDO($dsn, $user, $pass);
-            $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            static::$pdo = new PDO(static::$dsn, static::$user, static::$pass);
+            static::$pdo->setAttribute(
+                PDO::ATTR_ERRMODE,
+                PDO::ERRMODE_EXCEPTION
+            );
 
-            return $pdo;
+            return true;
         } catch (PDOException $e) {
-            return null;
+            ConsoleHelper::error($e->getMessage());
+            return false;
         }
     }
 
@@ -125,36 +168,44 @@ class DBListener
      * @param string $dbname Dabase name.
      * @return bool whether conection was stablished.
      */
-    protected static function useDb(PDO $pdo, string $dbname): bool
-    {
+    protected static function useDb(): bool {
         try {
-            $pdo->query("CREATE DATABASE IF NOT EXISTS $dbname");
-            $pdo->query("USE $dbname");
+            $name = '`' . static::$name . '`';
+            static::$pdo->query("CREATE DATABASE IF NOT EXISTS $name");
+            if (static::$suffix) {
+                $testname = '`' . static::$name . static::$suffix . '`';
+                static::$pdo->query("CREATE DATABASE IF NOT EXISTS $testname");
+            }
+
+            static::$pdo->query("USE $name");
 
             return true;
         } catch (PDOException $e) {
+            ConsoleHelper::error($e->getMessage());
             return false;
         }
     }
 
     /**
-     * @return string Location of `db.php` file.
+     * @param string $arg the argument to get all the templates and locations to
+     *   render.
      */
-    protected static function dbFile()
+    protected static function renderTPLs(string $arg): void
     {
-        return dirname(__DIR__) . '/common/config/db.php';
-    }
-
-    /**
-     * Drops and create database.
-     */
-    public static function truncate()
-    {
-        include self::dbFile();
-        $pdo = self::createPDO($dbuser, $dbpass);
-        $pdo->query("DROP DATABASE IF EXISTS $dbname");
-        $pdo->query("DROP DATABASE IF EXISTS {$dbname}_test");
-        $pdo->query("CREATE DATABASE $dbname");
-        $pdo->query("CREATE DATABASE {$dbname}_test");
+        foreach (static::$container->getArgs($arg) as $location => $tpl) {
+            ConsoleHelper::output(
+                ComposerHelper::renderFile(
+                    $location,
+                    new $tpl(
+                        static::$user,
+                        static::$pass,
+                        static::$dsn,
+                        static::$name
+                    )
+                )
+                ? ("`$location` ". static::FILE_RENDER_SUCCESS_MSG)
+                : ("`$location` ". static::FILE_RENDER_FAILURE_MSG)
+            );
+        }
     }
 }

@@ -20,7 +20,15 @@
     },
     "scripts": {
         "configDB": "roaresearch\\composer\\utils\\DBListener::config",
-        "blankDB": "roaresearch\\composer\\utils\\DBListener::blankConfig"
+        "blankDB": "roaresearch\\composer\\utils\\DBListener::blankConfig",
+        "tests": [
+            "@blankDB dbuser=s3cr3t dbpass=s3cr3t dbname=s3cr3t",
+            "cat tests.php",
+            "@blankDB",
+            "cat tests.php",
+            "@configDB",
+            "cat tests.php"
+        ]
     },
     "require-dev": {
     },
