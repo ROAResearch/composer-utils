@@ -3,6 +3,7 @@
 namespace roaresearch\composer\utils;
 
 use Composer\{Factory, Script\Event};
+use InvalidArgumentException;
 
 class ComposerHelper
 {
@@ -19,15 +20,37 @@ class ComposerHelper
         }
     }
 
+    /**
+     * Render a TPL template and saves it into a file.
+     *
+     * @param string $location relative to the composer project root
+     * @param TPL $tpl
+     * @return bool
+     */
     public static function renderFile(string $location, TPL $tpl): bool
+    {
+        return false !== file_put_contents(
+            static::parseLocation($location),
+            $tpl->render()
+        );
+    }
+
+    /**
+     * @return string the full file path.
+     * @throws InvalidArgumentException when the string contains '..'
+     */
+    protected static function parseLocation(string $location): string
     {
         static $projectDir = null;
         $projectDir ??= dirname(Factory::getComposerFile());
 
-        return false !== file_put_contents(
-            $projectDir . DIRECTORY_SEPARATOR
-                . strtr($location, '/', DIRECTORY_SEPARATOR),
-            $tpl->render()
-        );
+        if (str_contains($location, '..')) {
+            throw new InvalidArgumentException(
+                'File route must not contain `..`.'
+            );
+        }
+
+        return $projectDir . DIRECTORY_SEPARATOR
+            . strtr($location, '/', DIRECTORY_SEPARATOR);
     }
 }
