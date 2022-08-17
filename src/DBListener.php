@@ -28,12 +28,39 @@ class DBListener
     protected const FILE_RENDER_SUCCESS_MSG = 'Rendered successfully.';
     protected const FILE_RENDER_FAILURE_MSG = 'Rendering failed.';
 
+    /**
+     * @var EventContainer
+     */
     protected static EventContainer $container;
+ 
+    /**
+     * @var PDO connection generated with the provided credentials
+     */
     protected static PDO $pdo;
+ 
+    /**
+     * @var string database user
+     */
     protected static string $user;
+ 
+    /**
+     * @var string database password
+     */
     protected static string $pass;
+ 
+    /**
+     * @var string dns to access the databse
+     */
     protected static string $dsn;
+ 
+    /**
+     * @var string name of the database
+     */
     protected static string $name;
+ 
+    /**
+     * @var string suffix attached to the name to create the test database
+     */
     protected static string $suffix;
 
     /**
@@ -137,7 +164,7 @@ class DBListener
      * @param string $dsn
      * @return string[] DB user credentials.
      */
-    protected static function requestCredentials()
+    protected static function promptCredentials()
     {
         static::$user = static::promptUser();
         static::$pass = static::promptPass();
