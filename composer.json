@@ -19,24 +19,32 @@
         "php": "~8.1"
     },
     "scripts": {
-        "configDB": "roaresearch\\composer\\utils\\DBListener::config",
-        "blankDB": "roaresearch\\composer\\utils\\DBListener::blankConfig",
+        "config-db": "roaresearch\\composer\\utils\\DBListener::config",
+        "blank-db": "roaresearch\\composer\\utils\\DBListener::blankConfig",
         "tests": [
-            "@blankDB dbuser=s3cr3t dbpass=s3cr3t dbname=s3cr3t",
-            "cat tests.php",
-            "@blankDB",
-            "cat tests.php",
-            "@configDB",
-            "cat tests.php"
+            "@putenv environment=prod",
+            "@blank-db dbuser=s3cr3t dbpass=s3cr3t dbname=s3cr3t",
+            "cat db.local.php",
+            "@putenv environment=dev",
+            "@blank-db",
+            "cat db.local.php",
+            "cat db.test.php",
+            "@config-db",
+            "cat db.local.php",
+            "cat db.test.php"
         ]
     },
     "require-dev": {
     },
     "extra": {
         "utilConfig": {
-            "dbname": "composer_utils_test",
+            "dbname": "composer_utils",
+            "dbtestsuffix": "_test",
             "dbtpls": {
-                "tests.php": "roaresearch\\composer\\utils\\VarDBTPL"
+                "db.local.php": "roaresearch\\composer\\utils\\VarDBTPL"
+            },
+            "dbtesttpls": {
+                "db.test.php": "roaresearch\\composer\\utils\\VarDBTPL"
             }
         }
     },
